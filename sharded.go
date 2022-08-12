@@ -19,14 +19,14 @@ import (
 //
 // See cache_test.go for a few benchmarks.
 
-type unexportedShardedCache struct {
+type ShardedCache struct {
 	*shardedCache
 }
 
 type shardedCache struct {
 	seed    uint32
 	m       uint32
-	cs      []*cache
+	cs      []*mutexCache
 	janitor *shardedJanitor
 }
 
@@ -62,7 +62,7 @@ func djb33(seed uint32, k string) uint32 {
 	return d ^ (d >> 16)
 }
 
-func (sc *shardedCache) bucket(k string) *cache {
+func (sc *shardedCache) bucket(k string) *mutexCache {
 	return sc.cs[djb33(sc.seed, k)%sc.m]
 }
 
@@ -82,16 +82,20 @@ func (sc *shardedCache) Get(k string) (interface{}, bool) {
 	return sc.bucket(k).Get(k)
 }
 
-func (sc *shardedCache) Increment(k string, n int64) error {
-	return sc.bucket(k).Increment(k, n)
+func (sc *shardedCache) IncrementInt(k string, n int64) (interface{}, error) {
+	return sc.bucket(k).IncrementInt(k, n)
 }
 
-func (sc *shardedCache) IncrementFloat(k string, n float64) error {
+func (sc *shardedCache) IncrementFloat(k string, n float64) (interface{}, error) {
 	return sc.bucket(k).IncrementFloat(k, n)
 }
 
-func (sc *shardedCache) Decrement(k string, n int64) error {
-	return sc.bucket(k).Decrement(k, n)
+func (sc *shardedCache) DecrementInt(k string, n int64) (interface{}, error) {
+	return sc.bucket(k).DecrementInt(k, n)
+}
+
+func (sc *shardedCache) DecrementFloat(k string, n float64) (interface{}, error) {
+	return sc.bucket(k).DecrementFloat(k, n)
 }
 
 func (sc *shardedCache) Delete(k string) {
@@ -104,15 +108,21 @@ func (sc *shardedCache) DeleteExpired() {
 	}
 }
 
-// Returns the items in the cache. This may include items that have expired,
-// but have not yet been cleaned up. If this is significant, the Expiration
-// fields of the items should be checked. Note that explicit synchronization
-// is needed to use a cache and its corresponding Items() return values at
-// the same time, as the maps are shared.
-func (sc *shardedCache) Items() []map[string]Item {
-	res := make([]map[string]Item, len(sc.cs))
-	for i, v := range sc.cs {
-		res[i] = v.Items()
+func (sc *shardedCache) ItemCount() int {
+	var length int
+	for _, v := range sc.cs {
+		length += v.ItemCount()
+	}
+	return length
+}
+
+func (sc *shardedCache) Items() map[string]Item {
+	res := make(map[string]Item, sc.ItemCount())
+	for _, v := range sc.cs {
+		items := v.Items()
+		for k, item := range items {
+			res[k] = item
+		}
 	}
 	return res
 }
@@ -141,7 +151,7 @@ func (j *shardedJanitor) Run(sc *shardedCache) {
 	}
 }
 
-func stopShardedJanitor(sc *unexportedShardedCache) {
+func stopShardedJanitor(sc *ShardedCache) {
 	sc.janitor.stop <- true
 }
 
@@ -153,7 +163,7 @@ func runShardedJanitor(sc *shardedCache, ci time.Duration) {
 	go j.Run(sc)
 }
 
-func newShardedCache(n int, de time.Duration) *shardedCache {
+func newShardedCache(n int, de time.Duration, onEvicted ...func(string, interface{})) *shardedCache {
 	max := big.NewInt(0).SetUint64(uint64(math.MaxUint32))
 	rnd, err := rand.Int(rand.Reader, max)
 	var seed uint32
@@ -166,24 +176,30 @@ func newShardedCache(n int, de time.Duration) *shardedCache {
 	sc := &shardedCache{
 		seed: seed,
 		m:    uint32(n),
-		cs:   make([]*cache, n),
+		cs:   make([]*mutexCache, n),
+	}
+	var f func(string, interface{})
+	if len(onEvicted) > 0 {
+		f = onEvicted[0]
 	}
 	for i := 0; i < n; i++ {
-		c := &cache{
+		c := &mutexCache{
 			defaultExpiration: de,
 			items:             map[string]Item{},
+			onEvicted:         f,
 		}
 		sc.cs[i] = c
 	}
 	return sc
 }
 
-func unexportedNewSharded(defaultExpiration, cleanupInterval time.Duration, shards int) *unexportedShardedCache {
+func NewSharded(defaultExpiration, cleanupInterval time.Duration,
+	shards int, onEvicted ...func(string, interface{})) *ShardedCache {
 	if defaultExpiration == 0 {
 		defaultExpiration = -1
 	}
-	sc := newShardedCache(shards, defaultExpiration)
-	SC := &unexportedShardedCache{sc}
+	sc := newShardedCache(shards, defaultExpiration, onEvicted...)
+	SC := &ShardedCache{sc}
 	if cleanupInterval > 0 {
 		runShardedJanitor(sc, cleanupInterval)
 		runtime.SetFinalizer(SC, stopShardedJanitor)
