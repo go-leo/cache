@@ -1,11 +1,6 @@
 package cache
 
 import (
-	"crypto/rand"
-	"math"
-	"math/big"
-	insecurerand "math/rand"
-	"os"
 	"runtime"
 	"time"
 )
@@ -23,47 +18,19 @@ type ShardedCache struct {
 	*shardedCache
 }
 
+type Hash32 interface {
+	Sum32(k string) uint32
+}
+
 type shardedCache struct {
-	seed    uint32
 	m       uint32
 	cs      []*mutexCache
 	janitor *shardedJanitor
-}
-
-// djb2 with better shuffling. 5x faster than FNV with the hash.Hash overhead.
-func djb33(seed uint32, k string) uint32 {
-	var (
-		l = uint32(len(k))
-		d = 5381 + seed + l
-		i = uint32(0)
-	)
-	// Why is all this 5x faster than a for loop?
-	if l >= 4 {
-		for i < l-4 {
-			d = (d * 33) ^ uint32(k[i])
-			d = (d * 33) ^ uint32(k[i+1])
-			d = (d * 33) ^ uint32(k[i+2])
-			d = (d * 33) ^ uint32(k[i+3])
-			i += 4
-		}
-	}
-	switch l - i {
-	case 1:
-	case 2:
-		d = (d * 33) ^ uint32(k[i])
-	case 3:
-		d = (d * 33) ^ uint32(k[i])
-		d = (d * 33) ^ uint32(k[i+1])
-	case 4:
-		d = (d * 33) ^ uint32(k[i])
-		d = (d * 33) ^ uint32(k[i+1])
-		d = (d * 33) ^ uint32(k[i+2])
-	}
-	return d ^ (d >> 16)
+	hasher  Hash32
 }
 
 func (sc *shardedCache) bucket(k string) *mutexCache {
-	return sc.cs[djb33(sc.seed, k)%sc.m]
+	return sc.cs[sc.hasher.Sum32(k)%sc.m]
 }
 
 func (sc *shardedCache) Set(k string, x interface{}, d time.Duration) {
@@ -134,13 +101,13 @@ func (sc *shardedCache) Flush() {
 }
 
 type shardedJanitor struct {
-	Interval time.Duration
-	stop     chan bool
+	cleanupInterval time.Duration
+	stop            chan bool
 }
 
 func (j *shardedJanitor) Run(sc *shardedCache) {
 	j.stop = make(chan bool)
-	tick := time.Tick(j.Interval)
+	tick := time.Tick(j.cleanupInterval)
 	for {
 		select {
 		case <-tick:
@@ -155,28 +122,19 @@ func stopShardedJanitor(sc *ShardedCache) {
 	sc.janitor.stop <- true
 }
 
-func runShardedJanitor(sc *shardedCache, ci time.Duration) {
+func runShardedJanitor(sc *shardedCache, cleanupInterval time.Duration) {
 	j := &shardedJanitor{
-		Interval: ci,
+		cleanupInterval: cleanupInterval,
 	}
 	sc.janitor = j
 	go j.Run(sc)
 }
 
-func newShardedCache(n int, de time.Duration, onEvicted ...func(string, interface{})) *shardedCache {
-	max := big.NewInt(0).SetUint64(uint64(math.MaxUint32))
-	rnd, err := rand.Int(rand.Reader, max)
-	var seed uint32
-	if err != nil {
-		os.Stderr.Write([]byte("WARNING: go-cache's newShardedCache failed to read from the system CSPRNG (/dev/urandom or equivalent.) Your system's security may be compromised. Continuing with an insecure seed.\n"))
-		seed = insecurerand.Uint32()
-	} else {
-		seed = uint32(rnd.Uint64())
-	}
+func newNestedShardedCache(n int, expirationTime time.Duration, hasher Hash32, onEvicted ...func(string, interface{})) *shardedCache {
 	sc := &shardedCache{
-		seed: seed,
-		m:    uint32(n),
-		cs:   make([]*mutexCache, n),
+		m:      uint32(n),
+		cs:     make([]*mutexCache, n),
+		hasher: hasher,
 	}
 	var f func(string, interface{})
 	if len(onEvicted) > 0 {
@@ -184,21 +142,21 @@ func newShardedCache(n int, de time.Duration, onEvicted ...func(string, interfac
 	}
 	for i := 0; i < n; i++ {
 		c := &mutexCache{
-			defaultExpiration: de,
-			items:             map[string]Item{},
-			onEvicted:         f,
+			expirationTime: expirationTime,
+			items:          map[string]Item{},
+			onEvicted:      f,
 		}
 		sc.cs[i] = c
 	}
 	return sc
 }
 
-func NewSharded(defaultExpiration, cleanupInterval time.Duration,
-	shards int, onEvicted ...func(string, interface{})) *ShardedCache {
-	if defaultExpiration == 0 {
-		defaultExpiration = -1
+func newShardedCache(expirationTime, cleanupInterval time.Duration,
+	shards int, hasher Hash32, onEvicted ...func(string, interface{})) *ShardedCache {
+	if expirationTime == 0 {
+		expirationTime = -1
 	}
-	sc := newShardedCache(shards, defaultExpiration, onEvicted...)
+	sc := newNestedShardedCache(shards, expirationTime, hasher, onEvicted...)
 	SC := &ShardedCache{sc}
 	if cleanupInterval > 0 {
 		runShardedJanitor(sc, cleanupInterval)

@@ -16,8 +16,7 @@ type TestStruct struct {
 }
 
 func TestCache(t *testing.T) {
-	tc := New(DefaultExpiration, 0)
-
+	tc := New(ExpirationTime(DefaultExpiration), CleanupInterval(0)).(*MutexCache)
 	a, found := tc.Get("a")
 	if found || a != nil {
 		t.Error("Getting A found value that shouldn't exist:", a)
@@ -71,7 +70,7 @@ func TestCache(t *testing.T) {
 func TestCacheTimes(t *testing.T) {
 	var found bool
 
-	tc := New(50*time.Millisecond, 1*time.Millisecond)
+	tc := New(ExpirationTime(50*time.Millisecond), CleanupInterval(1*time.Millisecond)).(*MutexCache)
 	tc.Set("a", 1, DefaultExpiration)
 	tc.Set("b", 2, NoExpiration)
 	tc.Set("c", 3, 20*time.Millisecond)
@@ -106,36 +105,8 @@ func TestCacheTimes(t *testing.T) {
 	}
 }
 
-func TestNewFrom(t *testing.T) {
-	m := map[string]Item{
-		"a": {
-			Object:     1,
-			Expiration: 0,
-		},
-		"b": {
-			Object:     2,
-			Expiration: 0,
-		},
-	}
-	tc := NewFrom(DefaultExpiration, 0, m)
-	a, found := tc.Get("a")
-	if !found {
-		t.Fatal("Did not find a")
-	}
-	if a.(int) != 1 {
-		t.Fatal("a is not 1")
-	}
-	b, found := tc.Get("b")
-	if !found {
-		t.Fatal("Did not find b")
-	}
-	if b.(int) != 2 {
-		t.Fatal("b is not 2")
-	}
-}
-
 func TestStorePointerToStruct(t *testing.T) {
-	tc := New(DefaultExpiration, 0)
+	tc := New(ExpirationTime(DefaultExpiration), CleanupInterval(0)).(*MutexCache)
 	tc.Set("foo", &TestStruct{Num: 1}, DefaultExpiration)
 	x, found := tc.Get("foo")
 	if !found {
@@ -155,7 +126,7 @@ func TestStorePointerToStruct(t *testing.T) {
 }
 
 func TestIncrementWithInt(t *testing.T) {
-	tc := New(DefaultExpiration, 0)
+	tc := New(ExpirationTime(DefaultExpiration), CleanupInterval(0)).(*MutexCache)
 	tc.Set("tint", 1, DefaultExpiration)
 	nv, err := tc.IncrementInt("tint", 2)
 	if err != nil {
@@ -166,7 +137,7 @@ func TestIncrementWithInt(t *testing.T) {
 		t.Error("tint was not found")
 	}
 	if nv != x {
-		t.Error("new value is not equal get value")
+		t.Error("newMutexCache value is not equal get value")
 	}
 	if x.(int) != 3 {
 		t.Error("tint is not 3:", x)
@@ -174,7 +145,7 @@ func TestIncrementWithInt(t *testing.T) {
 }
 
 func TestIncrementWithInt8(t *testing.T) {
-	tc := New(DefaultExpiration, 0)
+	tc := New(ExpirationTime(DefaultExpiration), CleanupInterval(0)).(*MutexCache)
 	tc.Set("tint8", int8(1), DefaultExpiration)
 	nv, err := tc.IncrementInt("tint8", 2)
 	if err != nil {
@@ -185,7 +156,7 @@ func TestIncrementWithInt8(t *testing.T) {
 		t.Error("tint8 was not found")
 	}
 	if nv != x {
-		t.Error("new value is not equal get value")
+		t.Error("newMutexCache value is not equal get value")
 	}
 	if x.(int8) != 3 {
 		t.Error("tint8 is not 3:", x)
@@ -193,7 +164,7 @@ func TestIncrementWithInt8(t *testing.T) {
 }
 
 func TestIncrementWithInt16(t *testing.T) {
-	tc := New(DefaultExpiration, 0)
+	tc := New(ExpirationTime(DefaultExpiration), CleanupInterval(0)).(*MutexCache)
 	tc.Set("tint16", int16(1), DefaultExpiration)
 	nv, err := tc.IncrementInt("tint16", 2)
 	if err != nil {
@@ -204,7 +175,7 @@ func TestIncrementWithInt16(t *testing.T) {
 		t.Error("tint16 was not found")
 	}
 	if nv != x {
-		t.Error("new value is not equal get value")
+		t.Error("newMutexCache value is not equal get value")
 	}
 	if x.(int16) != 3 {
 		t.Error("tint16 is not 3:", x)
@@ -212,7 +183,7 @@ func TestIncrementWithInt16(t *testing.T) {
 }
 
 func TestIncrementWithInt32(t *testing.T) {
-	tc := New(DefaultExpiration, 0)
+	tc := New(ExpirationTime(DefaultExpiration), CleanupInterval(0)).(*MutexCache)
 	tc.Set("tint32", int32(1), DefaultExpiration)
 	nv, err := tc.IncrementInt("tint32", 2)
 	if err != nil {
@@ -223,7 +194,7 @@ func TestIncrementWithInt32(t *testing.T) {
 		t.Error("tint32 was not found")
 	}
 	if nv != x {
-		t.Error("new value is not equal get value")
+		t.Error("newMutexCache value is not equal get value")
 	}
 	if x.(int32) != 3 {
 		t.Error("tint32 is not 3:", x)
@@ -231,7 +202,7 @@ func TestIncrementWithInt32(t *testing.T) {
 }
 
 func TestIncrementWithInt64(t *testing.T) {
-	tc := New(DefaultExpiration, 0)
+	tc := New(ExpirationTime(DefaultExpiration), CleanupInterval(0)).(*MutexCache)
 	tc.Set("tint64", int64(1), DefaultExpiration)
 	nv, err := tc.IncrementInt("tint64", 2)
 	if err != nil {
@@ -242,7 +213,7 @@ func TestIncrementWithInt64(t *testing.T) {
 		t.Error("tint64 was not found")
 	}
 	if nv != x {
-		t.Error("new value is not equal get value")
+		t.Error("newMutexCache value is not equal get value")
 	}
 	if x.(int64) != 3 {
 		t.Error("tint64 is not 3:", x)
@@ -250,7 +221,7 @@ func TestIncrementWithInt64(t *testing.T) {
 }
 
 func TestIncrementWithUint(t *testing.T) {
-	tc := New(DefaultExpiration, 0)
+	tc := New(ExpirationTime(DefaultExpiration), CleanupInterval(0)).(*MutexCache)
 	tc.Set("tuint", uint(1), DefaultExpiration)
 	nv, err := tc.IncrementInt("tuint", 2)
 	if err != nil {
@@ -261,7 +232,7 @@ func TestIncrementWithUint(t *testing.T) {
 		t.Error("tuint was not found")
 	}
 	if nv != x {
-		t.Error("new value is not equal get value")
+		t.Error("newMutexCache value is not equal get value")
 	}
 	if x.(uint) != 3 {
 		t.Error("tuint is not 3:", x)
@@ -269,7 +240,7 @@ func TestIncrementWithUint(t *testing.T) {
 }
 
 func TestIncrementWithUintptr(t *testing.T) {
-	tc := New(DefaultExpiration, 0)
+	tc := New(ExpirationTime(DefaultExpiration), CleanupInterval(0)).(*MutexCache)
 	tc.Set("tuintptr", uintptr(1), DefaultExpiration)
 	nv, err := tc.IncrementInt("tuintptr", 2)
 	if err != nil {
@@ -281,7 +252,7 @@ func TestIncrementWithUintptr(t *testing.T) {
 		t.Error("tuintptr was not found")
 	}
 	if nv != x {
-		t.Error("new value is not equal get value")
+		t.Error("newMutexCache value is not equal get value")
 	}
 	if x.(uintptr) != 3 {
 		t.Error("tuintptr is not 3:", x)
@@ -289,7 +260,7 @@ func TestIncrementWithUintptr(t *testing.T) {
 }
 
 func TestIncrementWithUint8(t *testing.T) {
-	tc := New(DefaultExpiration, 0)
+	tc := New(ExpirationTime(DefaultExpiration), CleanupInterval(0)).(*MutexCache)
 	tc.Set("tuint8", uint8(1), DefaultExpiration)
 	nv, err := tc.IncrementInt("tuint8", 2)
 	if err != nil {
@@ -300,7 +271,7 @@ func TestIncrementWithUint8(t *testing.T) {
 		t.Error("tuint8 was not found")
 	}
 	if nv != x {
-		t.Error("new value is not equal get value")
+		t.Error("newMutexCache value is not equal get value")
 	}
 	if x.(uint8) != 3 {
 		t.Error("tuint8 is not 3:", x)
@@ -308,7 +279,7 @@ func TestIncrementWithUint8(t *testing.T) {
 }
 
 func TestIncrementWithUint16(t *testing.T) {
-	tc := New(DefaultExpiration, 0)
+	tc := New(ExpirationTime(DefaultExpiration), CleanupInterval(0)).(*MutexCache)
 	tc.Set("tuint16", uint16(1), DefaultExpiration)
 	nv, err := tc.IncrementInt("tuint16", 2)
 	if err != nil {
@@ -320,7 +291,7 @@ func TestIncrementWithUint16(t *testing.T) {
 		t.Error("tuint16 was not found")
 	}
 	if nv != x {
-		t.Error("new value is not equal get value")
+		t.Error("newMutexCache value is not equal get value")
 	}
 	if x.(uint16) != 3 {
 		t.Error("tuint16 is not 3:", x)
@@ -328,7 +299,7 @@ func TestIncrementWithUint16(t *testing.T) {
 }
 
 func TestIncrementWithUint32(t *testing.T) {
-	tc := New(DefaultExpiration, 0)
+	tc := New(ExpirationTime(DefaultExpiration), CleanupInterval(0)).(*MutexCache)
 	tc.Set("tuint32", uint32(1), DefaultExpiration)
 	nv, err := tc.IncrementInt("tuint32", 2)
 	if err != nil {
@@ -339,7 +310,7 @@ func TestIncrementWithUint32(t *testing.T) {
 		t.Error("tuint32 was not found")
 	}
 	if nv != x {
-		t.Error("new value is not equal get value")
+		t.Error("newMutexCache value is not equal get value")
 	}
 	if x.(uint32) != 3 {
 		t.Error("tuint32 is not 3:", x)
@@ -347,7 +318,7 @@ func TestIncrementWithUint32(t *testing.T) {
 }
 
 func TestIncrementWithUint64(t *testing.T) {
-	tc := New(DefaultExpiration, 0)
+	tc := New(ExpirationTime(DefaultExpiration), CleanupInterval(0)).(*MutexCache)
 	tc.Set("tuint64", uint64(1), DefaultExpiration)
 	nv, err := tc.IncrementInt("tuint64", 2)
 	if err != nil {
@@ -359,7 +330,7 @@ func TestIncrementWithUint64(t *testing.T) {
 		t.Error("tuint64 was not found")
 	}
 	if nv != x {
-		t.Error("new value is not equal get value")
+		t.Error("newMutexCache value is not equal get value")
 	}
 	if x.(uint64) != 3 {
 		t.Error("tuint64 is not 3:", x)
@@ -367,7 +338,7 @@ func TestIncrementWithUint64(t *testing.T) {
 }
 
 func TestIncrementWithFloat32(t *testing.T) {
-	tc := New(DefaultExpiration, 0)
+	tc := New(ExpirationTime(DefaultExpiration), CleanupInterval(0)).(*MutexCache)
 	tc.Set("float32", float32(1.5), DefaultExpiration)
 	nv, err := tc.IncrementInt("float32", 2)
 	if err != nil {
@@ -378,7 +349,7 @@ func TestIncrementWithFloat32(t *testing.T) {
 		t.Error("float32 was not found")
 	}
 	if nv != x {
-		t.Error("new value is not equal get value")
+		t.Error("newMutexCache value is not equal get value")
 	}
 	if x.(float32) != 3.5 {
 		t.Error("float32 is not 3.5:", x)
@@ -386,7 +357,7 @@ func TestIncrementWithFloat32(t *testing.T) {
 }
 
 func TestIncrementWithFloat64(t *testing.T) {
-	tc := New(DefaultExpiration, 0)
+	tc := New(ExpirationTime(DefaultExpiration), CleanupInterval(0)).(*MutexCache)
 	tc.Set("float64", float64(1.5), DefaultExpiration)
 	nv, err := tc.IncrementInt("float64", 2)
 	if err != nil {
@@ -397,7 +368,7 @@ func TestIncrementWithFloat64(t *testing.T) {
 		t.Error("float64 was not found")
 	}
 	if nv != x {
-		t.Error("new value is not equal get value")
+		t.Error("newMutexCache value is not equal get value")
 	}
 	if x.(float64) != 3.5 {
 		t.Error("float64 is not 3.5:", x)
@@ -405,7 +376,7 @@ func TestIncrementWithFloat64(t *testing.T) {
 }
 
 func TestIncrementFloatWithFloat32(t *testing.T) {
-	tc := New(DefaultExpiration, 0)
+	tc := New(ExpirationTime(DefaultExpiration), CleanupInterval(0)).(*MutexCache)
 	tc.Set("float32", float32(1.5), DefaultExpiration)
 	nv, err := tc.IncrementFloat("float32", 2)
 	if err != nil {
@@ -416,7 +387,7 @@ func TestIncrementFloatWithFloat32(t *testing.T) {
 		t.Error("float32 was not found")
 	}
 	if nv != x {
-		t.Error("new value is not equal get value")
+		t.Error("newMutexCache value is not equal get value")
 	}
 	if x.(float32) != 3.5 {
 		t.Error("float32 is not 3.5:", x)
@@ -424,7 +395,7 @@ func TestIncrementFloatWithFloat32(t *testing.T) {
 }
 
 func TestIncrementFloatWithFloat64(t *testing.T) {
-	tc := New(DefaultExpiration, 0)
+	tc := New(ExpirationTime(DefaultExpiration), CleanupInterval(0)).(*MutexCache)
 	tc.Set("float64", float64(1.5), DefaultExpiration)
 	nv, err := tc.IncrementFloat("float64", 2)
 	if err != nil {
@@ -435,7 +406,7 @@ func TestIncrementFloatWithFloat64(t *testing.T) {
 		t.Error("float64 was not found")
 	}
 	if nv != x {
-		t.Error("new value is not equal get value")
+		t.Error("newMutexCache value is not equal get value")
 	}
 	if x.(float64) != 3.5 {
 		t.Error("float64 is not 3.5:", x)
@@ -443,7 +414,7 @@ func TestIncrementFloatWithFloat64(t *testing.T) {
 }
 
 func TestDecrementWithInt(t *testing.T) {
-	tc := New(DefaultExpiration, 0)
+	tc := New(ExpirationTime(DefaultExpiration), CleanupInterval(0)).(*MutexCache)
 	tc.Set("int", int(5), DefaultExpiration)
 	nv, err := tc.DecrementInt("int", 2)
 	if err != nil {
@@ -454,7 +425,7 @@ func TestDecrementWithInt(t *testing.T) {
 		t.Error("int was not found")
 	}
 	if nv != x {
-		t.Error("new value is not equal get value")
+		t.Error("newMutexCache value is not equal get value")
 	}
 	if x.(int) != 3 {
 		t.Error("int is not 3:", x)
@@ -462,7 +433,7 @@ func TestDecrementWithInt(t *testing.T) {
 }
 
 func TestDecrementWithInt8(t *testing.T) {
-	tc := New(DefaultExpiration, 0)
+	tc := New(ExpirationTime(DefaultExpiration), CleanupInterval(0)).(*MutexCache)
 	tc.Set("int8", int8(5), DefaultExpiration)
 	nv, err := tc.DecrementInt("int8", 2)
 	if err != nil {
@@ -473,7 +444,7 @@ func TestDecrementWithInt8(t *testing.T) {
 		t.Error("int8 was not found")
 	}
 	if nv != x {
-		t.Error("new value is not equal get value")
+		t.Error("newMutexCache value is not equal get value")
 	}
 	if x.(int8) != 3 {
 		t.Error("int8 is not 3:", x)
@@ -481,7 +452,7 @@ func TestDecrementWithInt8(t *testing.T) {
 }
 
 func TestDecrementWithInt16(t *testing.T) {
-	tc := New(DefaultExpiration, 0)
+	tc := New(ExpirationTime(DefaultExpiration), CleanupInterval(0)).(*MutexCache)
 	tc.Set("int16", int16(5), DefaultExpiration)
 	nv, err := tc.DecrementInt("int16", 2)
 	if err != nil {
@@ -492,7 +463,7 @@ func TestDecrementWithInt16(t *testing.T) {
 		t.Error("int16 was not found")
 	}
 	if nv != x {
-		t.Error("new value is not equal get value")
+		t.Error("newMutexCache value is not equal get value")
 	}
 	if x.(int16) != 3 {
 		t.Error("int16 is not 3:", x)
@@ -500,7 +471,7 @@ func TestDecrementWithInt16(t *testing.T) {
 }
 
 func TestDecrementWithInt32(t *testing.T) {
-	tc := New(DefaultExpiration, 0)
+	tc := New(ExpirationTime(DefaultExpiration), CleanupInterval(0)).(*MutexCache)
 	tc.Set("int32", int32(5), DefaultExpiration)
 	nv, err := tc.DecrementInt("int32", 2)
 	if err != nil {
@@ -511,7 +482,7 @@ func TestDecrementWithInt32(t *testing.T) {
 		t.Error("int32 was not found")
 	}
 	if nv != x {
-		t.Error("new value is not equal get value")
+		t.Error("newMutexCache value is not equal get value")
 	}
 	if x.(int32) != 3 {
 		t.Error("int32 is not 3:", x)
@@ -519,7 +490,7 @@ func TestDecrementWithInt32(t *testing.T) {
 }
 
 func TestDecrementWithInt64(t *testing.T) {
-	tc := New(DefaultExpiration, 0)
+	tc := New(ExpirationTime(DefaultExpiration), CleanupInterval(0)).(*MutexCache)
 	tc.Set("int64", int64(5), DefaultExpiration)
 	nv, err := tc.DecrementInt("int64", 2)
 	if err != nil {
@@ -530,7 +501,7 @@ func TestDecrementWithInt64(t *testing.T) {
 		t.Error("int64 was not found")
 	}
 	if nv != x {
-		t.Error("new value is not equal get value")
+		t.Error("newMutexCache value is not equal get value")
 	}
 	if x.(int64) != 3 {
 		t.Error("int64 is not 3:", x)
@@ -538,7 +509,7 @@ func TestDecrementWithInt64(t *testing.T) {
 }
 
 func TestDecrementWithUint(t *testing.T) {
-	tc := New(DefaultExpiration, 0)
+	tc := New(ExpirationTime(DefaultExpiration), CleanupInterval(0)).(*MutexCache)
 	tc.Set("uint", uint(5), DefaultExpiration)
 	nv, err := tc.DecrementInt("uint", 2)
 	if err != nil {
@@ -549,7 +520,7 @@ func TestDecrementWithUint(t *testing.T) {
 		t.Error("uint was not found")
 	}
 	if nv != x {
-		t.Error("new value is not equal get value")
+		t.Error("newMutexCache value is not equal get value")
 	}
 	if x.(uint) != 3 {
 		t.Error("uint is not 3:", x)
@@ -557,7 +528,7 @@ func TestDecrementWithUint(t *testing.T) {
 }
 
 func TestDecrementWithUintptr(t *testing.T) {
-	tc := New(DefaultExpiration, 0)
+	tc := New(ExpirationTime(DefaultExpiration), CleanupInterval(0)).(*MutexCache)
 	tc.Set("uintptr", uintptr(5), DefaultExpiration)
 	nv, err := tc.DecrementInt("uintptr", 2)
 	if err != nil {
@@ -568,7 +539,7 @@ func TestDecrementWithUintptr(t *testing.T) {
 		t.Error("uintptr was not found")
 	}
 	if nv != x {
-		t.Error("new value is not equal get value")
+		t.Error("newMutexCache value is not equal get value")
 	}
 	if x.(uintptr) != 3 {
 		t.Error("uintptr is not 3:", x)
@@ -576,7 +547,7 @@ func TestDecrementWithUintptr(t *testing.T) {
 }
 
 func TestDecrementWithUint8(t *testing.T) {
-	tc := New(DefaultExpiration, 0)
+	tc := New(ExpirationTime(DefaultExpiration), CleanupInterval(0)).(*MutexCache)
 	tc.Set("uint8", uint8(5), DefaultExpiration)
 	nv, err := tc.DecrementInt("uint8", 2)
 	if err != nil {
@@ -587,7 +558,7 @@ func TestDecrementWithUint8(t *testing.T) {
 		t.Error("uint8 was not found")
 	}
 	if nv != x {
-		t.Error("new value is not equal get value")
+		t.Error("newMutexCache value is not equal get value")
 	}
 	if x.(uint8) != 3 {
 		t.Error("uint8 is not 3:", x)
@@ -595,7 +566,7 @@ func TestDecrementWithUint8(t *testing.T) {
 }
 
 func TestDecrementWithUint16(t *testing.T) {
-	tc := New(DefaultExpiration, 0)
+	tc := New(ExpirationTime(DefaultExpiration), CleanupInterval(0)).(*MutexCache)
 	tc.Set("uint16", uint16(5), DefaultExpiration)
 	nv, err := tc.DecrementInt("uint16", 2)
 	if err != nil {
@@ -606,7 +577,7 @@ func TestDecrementWithUint16(t *testing.T) {
 		t.Error("uint16 was not found")
 	}
 	if nv != x {
-		t.Error("new value is not equal get value")
+		t.Error("newMutexCache value is not equal get value")
 	}
 	if x.(uint16) != 3 {
 		t.Error("uint16 is not 3:", x)
@@ -614,7 +585,7 @@ func TestDecrementWithUint16(t *testing.T) {
 }
 
 func TestDecrementWithUint32(t *testing.T) {
-	tc := New(DefaultExpiration, 0)
+	tc := New(ExpirationTime(DefaultExpiration), CleanupInterval(0)).(*MutexCache)
 	tc.Set("uint32", uint32(5), DefaultExpiration)
 	nv, err := tc.DecrementInt("uint32", 2)
 	if err != nil {
@@ -625,7 +596,7 @@ func TestDecrementWithUint32(t *testing.T) {
 		t.Error("uint32 was not found")
 	}
 	if nv != x {
-		t.Error("new value is not equal get value")
+		t.Error("newMutexCache value is not equal get value")
 	}
 	if x.(uint32) != 3 {
 		t.Error("uint32 is not 3:", x)
@@ -633,7 +604,7 @@ func TestDecrementWithUint32(t *testing.T) {
 }
 
 func TestDecrementWithUint64(t *testing.T) {
-	tc := New(DefaultExpiration, 0)
+	tc := New(ExpirationTime(DefaultExpiration), CleanupInterval(0)).(*MutexCache)
 	tc.Set("uint64", uint64(5), DefaultExpiration)
 	nv, err := tc.DecrementInt("uint64", 2)
 	if err != nil {
@@ -644,7 +615,7 @@ func TestDecrementWithUint64(t *testing.T) {
 		t.Error("uint64 was not found")
 	}
 	if nv != x {
-		t.Error("new value is not equal get value")
+		t.Error("newMutexCache value is not equal get value")
 	}
 	if x.(uint64) != 3 {
 		t.Error("uint64 is not 3:", x)
@@ -652,7 +623,7 @@ func TestDecrementWithUint64(t *testing.T) {
 }
 
 func TestDecrementWithFloat32(t *testing.T) {
-	tc := New(DefaultExpiration, 0)
+	tc := New(ExpirationTime(DefaultExpiration), CleanupInterval(0)).(*MutexCache)
 	tc.Set("float32", float32(5.5), DefaultExpiration)
 	nv, err := tc.DecrementInt("float32", 2)
 	if err != nil {
@@ -663,7 +634,7 @@ func TestDecrementWithFloat32(t *testing.T) {
 		t.Error("float32 was not found")
 	}
 	if nv != x {
-		t.Error("new value is not equal get value")
+		t.Error("newMutexCache value is not equal get value")
 	}
 	if x.(float32) != 3.5 {
 		t.Error("float32 is not 3:", x)
@@ -671,7 +642,7 @@ func TestDecrementWithFloat32(t *testing.T) {
 }
 
 func TestDecrementWithFloat64(t *testing.T) {
-	tc := New(DefaultExpiration, 0)
+	tc := New(ExpirationTime(DefaultExpiration), CleanupInterval(0)).(*MutexCache)
 	tc.Set("float64", float64(5.5), DefaultExpiration)
 	nv, err := tc.DecrementInt("float64", 2)
 	if err != nil {
@@ -682,7 +653,7 @@ func TestDecrementWithFloat64(t *testing.T) {
 		t.Error("float64 was not found")
 	}
 	if nv != x {
-		t.Error("new value is not equal get value")
+		t.Error("newMutexCache value is not equal get value")
 	}
 	if x.(float64) != 3.5 {
 		t.Error("float64 is not 3:", x)
@@ -690,7 +661,7 @@ func TestDecrementWithFloat64(t *testing.T) {
 }
 
 func TestDecrementFloatWithFloat32(t *testing.T) {
-	tc := New(DefaultExpiration, 0)
+	tc := New(ExpirationTime(DefaultExpiration), CleanupInterval(0)).(*MutexCache)
 	tc.Set("float32", float32(5.5), DefaultExpiration)
 	nv, err := tc.DecrementFloat("float32", 2)
 	if err != nil {
@@ -701,7 +672,7 @@ func TestDecrementFloatWithFloat32(t *testing.T) {
 		t.Error("float32 was not found")
 	}
 	if nv != x {
-		t.Error("new value is not equal get value")
+		t.Error("newMutexCache value is not equal get value")
 	}
 	if x.(float32) != 3.5 {
 		t.Error("float32 is not 3:", x)
@@ -709,7 +680,7 @@ func TestDecrementFloatWithFloat32(t *testing.T) {
 }
 
 func TestDecrementFloatWithFloat64(t *testing.T) {
-	tc := New(DefaultExpiration, 0)
+	tc := New(ExpirationTime(DefaultExpiration), CleanupInterval(0)).(*MutexCache)
 	tc.Set("float64", float64(5.5), DefaultExpiration)
 	nv, err := tc.DecrementFloat("float64", 2)
 	if err != nil {
@@ -720,7 +691,7 @@ func TestDecrementFloatWithFloat64(t *testing.T) {
 		t.Error("float64 was not found")
 	}
 	if nv != x {
-		t.Error("new value is not equal get value")
+		t.Error("newMutexCache value is not equal get value")
 	}
 	if x.(float64) != 3.5 {
 		t.Error("float64 is not 3:", x)
@@ -728,7 +699,7 @@ func TestDecrementFloatWithFloat64(t *testing.T) {
 }
 
 func TestAdd(t *testing.T) {
-	tc := New(DefaultExpiration, 0)
+	tc := New(ExpirationTime(DefaultExpiration), CleanupInterval(0)).(*MutexCache)
 	err := tc.Add("foo", "bar", DefaultExpiration)
 	if err != nil {
 		t.Error("Couldn't add foo even though it shouldn't exist")
@@ -740,7 +711,7 @@ func TestAdd(t *testing.T) {
 }
 
 func TestReplace(t *testing.T) {
-	tc := New(DefaultExpiration, 0)
+	tc := New(ExpirationTime(DefaultExpiration), CleanupInterval(0)).(*MutexCache)
 	err := tc.Replace("foo", "bar", DefaultExpiration)
 	if err == nil {
 		t.Error("Replaced foo when it shouldn't exist")
@@ -753,7 +724,7 @@ func TestReplace(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
-	tc := New(DefaultExpiration, 0)
+	tc := New(ExpirationTime(DefaultExpiration), CleanupInterval(0)).(*MutexCache)
 	tc.Set("foo", "bar", DefaultExpiration)
 	tc.Delete("foo")
 	x, found := tc.Get("foo")
@@ -766,7 +737,7 @@ func TestDelete(t *testing.T) {
 }
 
 func TestItemCount(t *testing.T) {
-	tc := New(DefaultExpiration, 0)
+	tc := New(ExpirationTime(DefaultExpiration), CleanupInterval(0)).(*MutexCache)
 	tc.Set("foo", "1", DefaultExpiration)
 	tc.Set("bar", "2", DefaultExpiration)
 	tc.Set("baz", "3", DefaultExpiration)
@@ -776,7 +747,7 @@ func TestItemCount(t *testing.T) {
 }
 
 func TestFlush(t *testing.T) {
-	tc := New(DefaultExpiration, 0)
+	tc := New(ExpirationTime(DefaultExpiration), CleanupInterval(0)).(*MutexCache)
 	tc.Set("foo", "bar", DefaultExpiration)
 	tc.Set("baz", "yes", DefaultExpiration)
 	tc.Flush()
@@ -797,7 +768,7 @@ func TestFlush(t *testing.T) {
 }
 
 func TestIncrementOverflowInt(t *testing.T) {
-	tc := New(DefaultExpiration, 0)
+	tc := New(ExpirationTime(DefaultExpiration), CleanupInterval(0)).(*MutexCache)
 	tc.Set("int8", int8(127), DefaultExpiration)
 	nv, err := tc.IncrementInt("int8", 1)
 	if err != nil {
@@ -806,7 +777,7 @@ func TestIncrementOverflowInt(t *testing.T) {
 	x, _ := tc.Get("int8")
 	int8 := x.(int8)
 	if nv != x {
-		t.Error("new value is not equal get value")
+		t.Error("newMutexCache value is not equal get value")
 	}
 	if int8 != -128 {
 		t.Error("int8 did not overflow as expected; value:", int8)
@@ -814,7 +785,7 @@ func TestIncrementOverflowInt(t *testing.T) {
 }
 
 func TestIncrementOverflowUint(t *testing.T) {
-	tc := New(DefaultExpiration, 0)
+	tc := New(ExpirationTime(DefaultExpiration), CleanupInterval(0)).(*MutexCache)
 	tc.Set("uint8", uint8(255), DefaultExpiration)
 	nv, err := tc.IncrementInt("uint8", 1)
 	if err != nil {
@@ -823,7 +794,7 @@ func TestIncrementOverflowUint(t *testing.T) {
 	x, _ := tc.Get("uint8")
 	uint8 := x.(uint8)
 	if nv != x {
-		t.Error("new value is not equal get value")
+		t.Error("newMutexCache value is not equal get value")
 	}
 	if uint8 != 0 {
 		t.Error("uint8 did not overflow as expected; value:", uint8)
@@ -831,7 +802,7 @@ func TestIncrementOverflowUint(t *testing.T) {
 }
 
 func TestDecrementUnderflowUint(t *testing.T) {
-	tc := New(DefaultExpiration, 0)
+	tc := New(ExpirationTime(DefaultExpiration), CleanupInterval(0)).(*MutexCache)
 	tc.Set("uint8", uint8(0), DefaultExpiration)
 	nv, err := tc.DecrementInt("uint8", 1)
 	if err != nil {
@@ -840,7 +811,7 @@ func TestDecrementUnderflowUint(t *testing.T) {
 	x, _ := tc.Get("uint8")
 	uint8 := x.(uint8)
 	if nv != x {
-		t.Error("new value is not equal get value")
+		t.Error("newMutexCache value is not equal get value")
 	}
 	if uint8 != 255 {
 		t.Error("uint8 did not underflow as expected; value:", uint8)
@@ -850,12 +821,12 @@ func TestDecrementUnderflowUint(t *testing.T) {
 func TestOnEvicted(t *testing.T) {
 	works := false
 	var tc *MutexCache
-	tc = New(DefaultExpiration, 0, func(k string, v interface{}) {
+	tc = New(ExpirationTime(DefaultExpiration), OnEvicted(func(k string, v interface{}) {
 		if k == "foo" && v.(int) == 3 {
 			works = true
 		}
 		tc.Set("bar", 4, DefaultExpiration)
-	})
+	})).(*MutexCache)
 	tc.Set("foo", 3, DefaultExpiration)
 	tc.Delete("foo")
 	x, _ := tc.Get("bar")
@@ -868,7 +839,7 @@ func TestOnEvicted(t *testing.T) {
 }
 
 func TestCacheSerialization(t *testing.T) {
-	tc := New(DefaultExpiration, 0)
+	tc := New(ExpirationTime(DefaultExpiration), CleanupInterval(0)).(*MutexCache)
 	testFillAndSerialize(t, tc)
 
 	// Check if gob.Register behaves properly even after multiple gob.Register
@@ -904,7 +875,7 @@ func testFillAndSerialize(t *testing.T, tc *MutexCache) {
 		t.Fatal("Couldn't save cache to fp:", err)
 	}
 
-	oc := New(DefaultExpiration, 0)
+	oc := New(ExpirationTime(DefaultExpiration), CleanupInterval(0)).(*MutexCache)
 	err = oc.Load(fp)
 	if err != nil {
 		t.Fatal("Couldn't load cache from fp:", err)
@@ -995,7 +966,7 @@ func testFillAndSerialize(t *testing.T, tc *MutexCache) {
 }
 
 func TestFileSerialization(t *testing.T) {
-	tc := New(DefaultExpiration, 0)
+	tc := New(ExpirationTime(DefaultExpiration), CleanupInterval(0)).(*MutexCache)
 	tc.Add("a", "a", DefaultExpiration)
 	tc.Add("b", "b", DefaultExpiration)
 	f, err := ioutil.TempFile("", "go-cache-cache.dat")
@@ -1006,7 +977,7 @@ func TestFileSerialization(t *testing.T) {
 	f.Close()
 	tc.SaveFile(fname)
 
-	oc := New(DefaultExpiration, 0)
+	oc := New(ExpirationTime(DefaultExpiration), CleanupInterval(0)).(*MutexCache)
 	oc.Add("a", "aa", 0) // this should not be overwritten
 	err = oc.LoadFile(fname)
 	if err != nil {
@@ -1034,7 +1005,7 @@ func TestFileSerialization(t *testing.T) {
 }
 
 func TestSerializeUnserializable(t *testing.T) {
-	tc := New(DefaultExpiration, 0)
+	tc := New(ExpirationTime(DefaultExpiration), CleanupInterval(0)).(*MutexCache)
 	ch := make(chan bool, 1)
 	ch <- true
 	tc.Set("chan", ch, DefaultExpiration)
@@ -1055,7 +1026,7 @@ func BenchmarkCacheGetNotExpiring(b *testing.B) {
 
 func benchmarkCacheGet(b *testing.B, exp time.Duration) {
 	b.StopTimer()
-	tc := New(exp, 0)
+	tc := New(ExpirationTime(exp)).(*MutexCache)
 	tc.Set("foo", "bar", DefaultExpiration)
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
@@ -1116,7 +1087,7 @@ func BenchmarkCacheGetConcurrentNotExpiring(b *testing.B) {
 
 func benchmarkCacheGetConcurrent(b *testing.B, exp time.Duration) {
 	b.StopTimer()
-	tc := New(exp, 0)
+	tc := New(ExpirationTime(exp)).(*MutexCache)
 	tc.Set("foo", "bar", DefaultExpiration)
 	wg := new(sync.WaitGroup)
 	workers := runtime.NumCPU()
@@ -1172,7 +1143,7 @@ func benchmarkCacheGetManyConcurrent(b *testing.B, exp time.Duration) {
 	// in sharded_test.go.
 	b.StopTimer()
 	n := 10000
-	tc := New(exp, 0)
+	tc := New(ExpirationTime(exp)).(*MutexCache)
 	keys := make([]string, n)
 	for i := 0; i < n; i++ {
 		k := "foo" + strconv.Itoa(i)
@@ -1204,7 +1175,7 @@ func BenchmarkCacheSetNotExpiring(b *testing.B) {
 
 func benchmarkCacheSet(b *testing.B, exp time.Duration) {
 	b.StopTimer()
-	tc := New(exp, 0)
+	tc := New(ExpirationTime(exp)).(*MutexCache)
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
 		tc.Set("foo", "bar", DefaultExpiration)
@@ -1225,7 +1196,7 @@ func BenchmarkRWMutexMapSet(b *testing.B) {
 
 func BenchmarkCacheSetDelete(b *testing.B) {
 	b.StopTimer()
-	tc := New(DefaultExpiration, 0)
+	tc := New(ExpirationTime(DefaultExpiration), CleanupInterval(0)).(*MutexCache)
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
 		tc.Set("foo", "bar", DefaultExpiration)
@@ -1250,7 +1221,7 @@ func BenchmarkRWMutexMapSetDelete(b *testing.B) {
 
 func BenchmarkCacheSetDeleteSingleLock(b *testing.B) {
 	b.StopTimer()
-	tc := New(DefaultExpiration, 0)
+	tc := New(ExpirationTime(DefaultExpiration), CleanupInterval(0)).(*MutexCache)
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
 		tc.mu.Lock()
@@ -1275,7 +1246,7 @@ func BenchmarkRWMutexMapSetDeleteSingleLock(b *testing.B) {
 
 func BenchmarkIncrementInt(b *testing.B) {
 	b.StopTimer()
-	tc := New(DefaultExpiration, 0)
+	tc := New(ExpirationTime(DefaultExpiration), CleanupInterval(0)).(*MutexCache)
 	tc.Set("foo", 0, DefaultExpiration)
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
@@ -1285,7 +1256,7 @@ func BenchmarkIncrementInt(b *testing.B) {
 
 func BenchmarkDeleteExpiredLoop(b *testing.B) {
 	b.StopTimer()
-	tc := New(5*time.Minute, 0)
+	tc := New(ExpirationTime(5 * time.Minute)).(*MutexCache)
 	tc.mu.Lock()
 	for i := 0; i < 100000; i++ {
 		tc.set(strconv.Itoa(i), "bar", DefaultExpiration)
@@ -1298,7 +1269,7 @@ func BenchmarkDeleteExpiredLoop(b *testing.B) {
 }
 
 func TestGetWithExpiration(t *testing.T) {
-	tc := New(DefaultExpiration, 0)
+	tc := New(ExpirationTime(DefaultExpiration), CleanupInterval(0)).(*MutexCache)
 
 	a, expiration, found := tc.GetWithExpiration("a")
 	if found || a != nil || !expiration.IsZero() {

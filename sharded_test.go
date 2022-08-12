@@ -27,7 +27,7 @@ var shardedKeys = []string{
 }
 
 func TestShardedCache(t *testing.T) {
-	tc := NewSharded(DefaultExpiration, 0, 13)
+	tc := New(Shards(13)).(*ShardedCache)
 	for _, v := range shardedKeys {
 		tc.Set(v, "value", DefaultExpiration)
 	}
@@ -43,7 +43,7 @@ func BenchmarkShardedCacheGetNotExpiring(b *testing.B) {
 
 func benchmarkShardedCacheGet(b *testing.B, exp time.Duration) {
 	b.StopTimer()
-	tc := NewSharded(exp, 0, 10)
+	tc := New(Shards(13)).(*ShardedCache)
 	tc.Set("foobarba", "zquux", DefaultExpiration)
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
@@ -62,12 +62,13 @@ func BenchmarkShardedCacheGetManyConcurrentNotExpiring(b *testing.B) {
 func benchmarkShardedCacheGetManyConcurrent(b *testing.B, exp time.Duration) {
 	b.StopTimer()
 	n := 10000
-	tsc := NewSharded(exp, 0, 20)
+	tc := New(Shards(13)).(*ShardedCache)
+
 	keys := make([]string, n)
 	for i := 0; i < n; i++ {
 		k := "foo" + strconv.Itoa(i)
 		keys[i] = k
-		tsc.Set(k, "bar", DefaultExpiration)
+		tc.Set(k, "bar", DefaultExpiration)
 	}
 	each := b.N / n
 	wg := new(sync.WaitGroup)
@@ -75,7 +76,7 @@ func benchmarkShardedCacheGetManyConcurrent(b *testing.B, exp time.Duration) {
 	for _, v := range keys {
 		go func(k string) {
 			for j := 0; j < each; j++ {
-				tsc.Get(k)
+				tc.Get(k)
 			}
 			wg.Done()
 		}(v)

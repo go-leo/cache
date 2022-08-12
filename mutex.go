@@ -12,15 +12,15 @@ import (
 
 type MutexCache struct {
 	*mutexCache
-	// If this is confusing, see the comment at the bottom of New()
+	// If this is confusing, see the comment at the bottom of newMutexCache()
 }
 
 type mutexCache struct {
-	defaultExpiration time.Duration
-	items             map[string]Item
-	mu                sync.RWMutex
-	onEvicted         func(string, interface{})
-	janitor           *janitor
+	expirationTime time.Duration
+	items          map[string]Item
+	mu             sync.RWMutex
+	onEvicted      func(string, interface{})
+	janitor        *janitor
 }
 
 // Add an item to the cache, replacing any existing item. If the duration is 0
@@ -30,7 +30,7 @@ func (c *mutexCache) Set(k string, x interface{}, d time.Duration) {
 	// "Inlining" of set
 	var e int64
 	if d == DefaultExpiration {
-		d = c.defaultExpiration
+		d = c.expirationTime
 	}
 	if d > 0 {
 		e = time.Now().Add(d).UnixNano()
@@ -48,7 +48,7 @@ func (c *mutexCache) Set(k string, x interface{}, d time.Duration) {
 func (c *mutexCache) set(k string, x interface{}, d time.Duration) {
 	var e int64
 	if d == DefaultExpiration {
-		d = c.defaultExpiration
+		d = c.expirationTime
 	}
 	if d > 0 {
 		e = time.Now().Add(d).UnixNano()
@@ -73,7 +73,7 @@ func (c *mutexCache) Add(k string, x interface{}, d time.Duration) error {
 	return nil
 }
 
-// Set a new value for the cache key only if it already exists, and the existing
+// Set a newMutexCache value for the cache key only if it already exists, and the existing
 // item hasn't expired. Returns an error otherwise.
 func (c *mutexCache) Replace(k string, x interface{}, d time.Duration) error {
 	c.mu.Lock()
@@ -351,7 +351,7 @@ func (c *mutexCache) DeleteExpired() {
 	}
 }
 
-// Copies all unexpired items in the cache into a new map and returns it.
+// Copies all unexpired items in the cache into a newMutexCache map and returns it.
 func (c *mutexCache) Items() map[string]Item {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -387,8 +387,8 @@ func (c *mutexCache) Flush() {
 
 // Write the cache's items (using Gob) to an io.Writer.
 //
-// NOTE: This method is deprecated in favor of c.Items() and NewFrom() (see the
-// documentation for NewFrom().)
+// NOTE: This method is deprecated in favor of c.Items() and newMutexCacheFrom() (see the
+// documentation for newMutexCacheFrom().)
 func (c *mutexCache) Save(w io.Writer) (err error) {
 	enc := gob.NewEncoder(w)
 	defer func() {
@@ -408,8 +408,8 @@ func (c *mutexCache) Save(w io.Writer) (err error) {
 // Save the cache's items to the given filename, creating the file if it
 // doesn't exist, and overwriting it if it does.
 //
-// NOTE: This method is deprecated in favor of c.Items() and NewFrom() (see the
-// documentation for NewFrom().)
+// NOTE: This method is deprecated in favor of c.Items() and newMutexCacheFrom() (see the
+// documentation for newMutexCacheFrom().)
 func (c *mutexCache) SaveFile(fname string) error {
 	fp, err := os.Create(fname)
 	if err != nil {
@@ -426,8 +426,8 @@ func (c *mutexCache) SaveFile(fname string) error {
 // Add (Gob-serialized) cache items from an io.Reader, excluding any items with
 // keys that already exist (and haven't expired) in the current cache.
 //
-// NOTE: This method is deprecated in favor of c.Items() and NewFrom() (see the
-// documentation for NewFrom().)
+// NOTE: This method is deprecated in favor of c.Items() and newMutexCacheFrom() (see the
+// documentation for newMutexCacheFrom().)
 func (c *mutexCache) Load(r io.Reader) error {
 	dec := gob.NewDecoder(r)
 	items := map[string]Item{}
@@ -448,8 +448,8 @@ func (c *mutexCache) Load(r io.Reader) error {
 // Load and add cache items from the given filename, excluding any items with
 // keys that already exist in the current cache.
 //
-// NOTE: This method is deprecated in favor of c.Items() and NewFrom() (see the
-// documentation for NewFrom().)
+// NOTE: This method is deprecated in favor of c.Items() and newMutexCacheFrom() (see the
+// documentation for newMutexCacheFrom().)
 func (c *mutexCache) LoadFile(fname string) error {
 	fp, err := os.Open(fname)
 	if err != nil {
@@ -494,20 +494,20 @@ func runJanitor(c *mutexCache, ci time.Duration) {
 	go j.Run(c)
 }
 
-func newCache(de time.Duration, m map[string]Item, onEvicted func(string, interface{})) *mutexCache {
+func newNestedMutexCache(de time.Duration, m map[string]Item, onEvicted func(string, interface{})) *mutexCache {
 	if de == 0 {
 		de = -1
 	}
 	c := &mutexCache{
-		defaultExpiration: de,
-		items:             m,
-		onEvicted:         onEvicted,
+		expirationTime: de,
+		items:          m,
+		onEvicted:      onEvicted,
 	}
 	return c
 }
 
 func newCacheWithJanitor(de time.Duration, ci time.Duration, m map[string]Item, onEvicted func(string, interface{})) *MutexCache {
-	c := newCache(de, m, onEvicted)
+	c := newNestedMutexCache(de, m, onEvicted)
 	// This trick ensures that the janitor goroutine (which--granted it
 	// was enabled--is running DeleteExpired on c forever) does not keep
 	// the returned C object from being garbage collected. When it is
@@ -521,47 +521,11 @@ func newCacheWithJanitor(de time.Duration, ci time.Duration, m map[string]Item, 
 	return C
 }
 
-// Return a new cache with a given default expiration duration and cleanup
-// interval. If the expiration duration is less than one (or NoExpiration),
-// the items in the cache never expire (by default), and must be deleted
-// manually. If the cleanup interval is less than one, expired items are not
-// deleted from the cache before calling c.DeleteExpired().
-// onEvicted Sets an (optional) function that is called with the key and value when an
-// item is evicted from the cache. (Including when it is deleted manually, but
-// not when it is overwritten.) Set to nil to disable.
-func New(defaultExpiration, cleanupInterval time.Duration, onEvicted ...func(string, interface{})) *MutexCache {
-	items := make(map[string]Item)
-	return NewFrom(defaultExpiration, cleanupInterval, items, onEvicted...)
-}
-
-// Return a new cache with a given default expiration duration and cleanup
-// interval. If the expiration duration is less than one (or NoExpiration),
-// the items in the cache never expire (by default), and must be deleted
-// manually. If the cleanup interval is less than one, expired items are not
-// deleted from the cache before calling c.DeleteExpired().
-// onEvicted Sets an (optional) function that is called with the key and value when an
-// item is evicted from the cache. (Including when it is deleted manually, but
-// not when it is overwritten.) Set to nil to disable.
-//
-// NewFrom() also accepts an items map which will serve as the underlying map
-// for the cache. This is useful for starting from a deserialized cache
-// (serialized using e.g. gob.Encode() on c.Items()), or passing in e.g.
-// make(map[string]Item, 500) to improve startup performance when the cache
-// is expected to reach a certain minimum size.
-//
-// Only the cache's methods synchronize access to this map, so it is not
-// recommended to keep any references to the map around after creating a cache.
-// If need be, the map can be accessed at a later point using c.Items() (subject
-// to the same caveat.)
-//
-// Note regarding serialization: When using e.g. gob, make sure to
-// gob.Register() the individual types stored in the cache before encoding a
-// map retrieved with c.Items(), and to register those same types before
-// decoding a blob containing an items map.
-func NewFrom(defaultExpiration, cleanupInterval time.Duration, items map[string]Item, onEvicted ...func(string, interface{})) *MutexCache {
+func newMutexCache(expirationTime, cleanupInterval time.Duration, onEvicted ...func(string, interface{})) *MutexCache {
 	var f func(string, interface{})
 	if len(onEvicted) > 0 {
 		f = onEvicted[0]
 	}
-	return newCacheWithJanitor(defaultExpiration, cleanupInterval, items, f)
+	items := make(map[string]Item)
+	return newCacheWithJanitor(expirationTime, cleanupInterval, items, f)
 }
