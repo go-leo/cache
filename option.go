@@ -19,7 +19,7 @@ func (o *options) apply(opts ...Option) {
 }
 
 func (o *options) init() {
-	if o.Shards > 0 && o.Hasher == nil {
+	if o.Shards > 1 && o.Hasher == nil {
 		o.Hasher = &DJB33Hasher{Seed: Seed()}
 	}
 }
@@ -60,7 +60,7 @@ func New(opts ...Option) Cache {
 	o := new(options)
 	o.apply(opts...)
 	o.init()
-	if o.Shards == 0 {
+	if o.Shards <= 1 {
 		return newMutexCache(o.ExpirationTime, o.CleanupInterval, o.OnEvicted)
 	}
 	return newShardedCache(o.ExpirationTime, o.CleanupInterval, o.Shards, o.Hasher, o.OnEvicted)
