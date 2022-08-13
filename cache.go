@@ -16,6 +16,7 @@ type Cache interface {
 	Add(k string, x interface{}, d time.Duration) error
 	Replace(k string, x interface{}, d time.Duration) error
 	Get(k string) (interface{}, bool)
+	GetWithExpiration(k string) (interface{}, time.Time, bool)
 	IncrementInt(k string, n int64) (interface{}, error)
 	IncrementFloat(k string, n float64) (interface{}, error)
 	DecrementInt(k string, n int64) (interface{}, error)
